@@ -40,6 +40,36 @@ openvpn --config cloud-bastion.ovpn
 https://104.155.57.87.xip.io
 
 
+##Домашнее задание №6(cloud-testapp)
+
+Данные для подключения:
+testapp_IP = 35.247.17.144
+testapp_port = 9292
+
+Добавлена команда по автоматическому созданию и развертыванию приложения с помощью startup_script
+```
+gcloud compute instances create reddit-app\
+  --boot-disk-size=10GB \
+  --image-family ubuntu-1604-lts \
+  --image-project=ubuntu-os-cloud \
+  --machine-type=g1-small \
+  --tags puma-server \
+  --restart-on-failure \
+  --metadata-from-file startup-script=startup_script.sh
+```
+
+Добавлена команда для создания правила default-puma-server:
+```
+gcloud compute firewall-rules create default-puma-server\
+  --direction=INGRESS \
+  --priority=1000 \
+  --network=default \
+  --action=ALLOW \
+  --rules=tcp:9292 \
+  --source-ranges=0.0.0.0/0 \
+  --target-tags=puma-server \
+  --description="Allow incoming traffic for puma-server" 
+
 
 
 
