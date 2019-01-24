@@ -90,7 +90,7 @@ packer validate -var-file variables.json ./ubuntu16.json
 packer build -var-file variables.json ./ubuntu16.json
 ```
 
-На основании  шаблона immutable.json создан образ reddit-full-1548324659 , в котором сделан  bake приложения reddit. Добавлен старт приложения с помощью systemd
+На основании  шаблона immutable.json создан образ reddit-full-1548324659, в котором сделан  bake приложения reddit. Добавлен старт приложения с помощью systemd.
 Также в папку /config-scripts добавлен скрипт create-reddit-vm.sh с возможностью запуска инстанса с помощью команды gcloud.
 
 
