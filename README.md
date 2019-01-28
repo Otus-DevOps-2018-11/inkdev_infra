@@ -40,7 +40,7 @@ openvpn --config cloud-bastion.ovpn
 https://104.155.57.87.xip.io
 
 
-##Домашнее задание №6(cloud-testapp)
+## Домашнее задание №6(cloud-testapp)
 
 Данные для подключения:
 testapp_IP = 35.247.17.144
@@ -69,7 +69,29 @@ gcloud compute firewall-rules create default-puma-server\
   --source-ranges=0.0.0.0/0 \
   --target-tags=puma-server \
   --description="Allow incoming traffic for puma-server" 
+```
 
+## Домашнее задание №7(packer-base)
+Создан базовый образ reddit-base на основании шаблона Ubuntu16.json
+Указанный шаблон настроен на работу с переменными, описанными в файле variables.json
+В целях безопасности, указанный шаблон добавлен в файл .gitignore. В репозиторий добавлена его копия variables.json.example
+Добавлены параметры для  базового образа:
+ - Описание
+ - Размер диска
+ - тип диска
+ - тег
+ 
+Указанный шаблон валидирован с помощью команды
+```
+packer validate -var-file variables.json ./ubuntu16.json
+```
+Образ собран с помощью команды
+```
+packer build -var-file variables.json ./ubuntu16.json
+```
+
+На основании  шаблона immutable.json создан образ reddit-full-1548324659, в котором сделан  bake приложения reddit. Добавлен старт приложения с помощью systemd.
+Также в папку /config-scripts добавлен скрипт create-reddit-vm.sh с возможностью запуска инстанса с помощью команды gcloud.
 
 
 
