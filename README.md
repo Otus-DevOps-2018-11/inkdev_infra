@@ -242,6 +242,74 @@ packer build -var-file variables.json ./ubuntu16.json
 - В файл main.tf добавлен еще один resource reddit-app2, оба ресурса добавлены в балансировщик. При этом, при остановке приложения на одном из инстансов, приложение остается доступно по внешнему адресу за счет работы приложения на втором инстансе. Однако, при такой кофигурации, интсансы содержат разные экземпляры БД и не соблюдается принцип консистентности, т.е на одном инстансе будут храниться данные, отличные от данных на другом инстансе.
 - Добавлено создание инстанса reddit-app2 с помощью директивы и перемнной count.
 
+Полезные команды
+```
+terraform init #инициализация окружения
+terraform plan №планирование изменений
+terraform apply -auto-approve=true #применение с ключом подтверждения
+terraform show #посмотреть state
+terraform taint google_compute_instance.app #применение к существующему инстансу
+terraform destroy #удаление окружения
+```
+
+## Домашнее задание №9(terraform-2)
+
+- Разбили монолитное приложение на отдельные модули app, db, vpc:
+   - Модуль app для деплоя приложения puma-server
+   - Модуль db для деплоя БД
+   - Модуль VPC с правилом доступа по ssh
+
+- Создали окружения prod и stage
+- Создали два хранилища bucket в Google Cloud Storage
+
+### Полезные команды
+```
+terraform import
+terraform get #прочитать модули
+```
+Сборка образов для app и db packer
+```
+packer build -var-file variables.json db.json
+packer build -var-file variables.json app.json
+```
+Дебаг packer в терминал
+```
+PACKER_LOG=1 packer build -var-file variables.json db.json
+```
+В процессе создания образа packer необходимо не забывать о том, что скрипты провижионеров должны работать по ssh. Cоответственно, без правила фаерволла для пакера, образы собираться не будут.
+
+### Задание со *
+Настройка хранения стейт файла в бакете GCP
+- В директории terraform создаем файл storage-bucket.tf с описанием создания двух бакетов. Применяем через terraform init и terraform apply
+- В окружении  stage создаем файл backend.tf c описанем хранения stage-файла на GCS. Делаем terraform init и соглашаемся с предложением хранить .tfstate файл в указанном бакете GCP. Теперь terrafrom будет писать состояние в этот файл.
+- Копируем конфигурационные файлы в папку tftest, убеждаемся, что отсутствует файл .tfstate, хранящийся в бакете, запускаем и видим что terraform успешно применил конфигурацию вне зависимости от расположения конф. файлов 
+- При попытке запустить два экземпляра terraform одновременно, получаем ошибку:
+```
+Error: Error locking state: Error acquiring the state lock: writing "gs://inkdev-bucket1/terraform/state/default.tflock" failed: googleapi: Error 412: Precondition Failed, conditionNotMet
+Lock Info:
+  ID:        1550135439289646
+  Path:      gs://inkdev-bucket1/terraform/state/default.tflock
+  Operation: OperationTypeApply
+  Who:       alexis@inkdev
+  Version:   0.11.9
+  Created:   2019-02-14 09:10:39.178194674 +0000 UTC
+  Info:
+
+
+Terraform acquires a state lock to protect the state from being written
+by multiple users at the same time. Please resolve the issue above and try
+again. For most commands, you can disable locking with the "-lock=false"
+flag, but this is not recommended.
+```
+### Задание со **
+Приложение разнесено по разным нодам:puma на reddit-app и БД на reddit-db
+- В модули app и db добавлены необходимые provisioner'ы для работы приложения.
+- Подстановка адреса БД осущетвляется через переменную db_local_ip. Указанную переменную берем из внутреннего адреса инстанса reddit-db и подставлеяем с помощью переменной окружения DATABASE_URL в файл tmp/puma.env. Таким образом, приложение reddit знает на каком инстансе запущена БД.
+- В модуле db адрес листнера заменен с адреса localhost 127.0.0.1 на 0.0.0.0 для возможности подключения со всех ip-адресов.
+- Проверено подключение
+
+
+
 
 
 
