@@ -308,6 +308,161 @@ flag, but this is not recommended.
 - В модуле db адрес листнера заменен с адреса localhost 127.0.0.1 на 0.0.0.0 для возможности подключения со всех ip-адресов.
 - Проверено подключение
 
+# Домашнее задание №10(ansible-1)
+Полезные команды
+Проверяем версию python
+```
+python --version
+```
+Установка стабильной версии ansible на Debian stretch
+```
+sudo echo `deb http://ppa.launchpad.net/ansible/ansible/ubuntu trusty main` >> /etc/apt/sources.list
+sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 93C4A3FD7BB9C367
+sudo apt-get update
+sudo apt-get install ansible
+```
+Проверка версии ansible
+
+```
+ansible --version
+ansible 2.7.8
+  config file = /etc/ansible/ansible.cfg
+  configured module search path = [u'/home/alexis/.ansible/plugins/modules', u'/usr/share/ansible/plugins/modules']
+  ansible python module location = /usr/lib/python2.7/dist-packages/ansible
+  executable location = /usr/bin/ansible
+  python version = 2.7.13 (default, Sep 26 2018, 18:42:22) [GCC 6.3.0 20170516]
+```
+
+- Подняли инфраструктуру из тестового окружения stage
+- Создали inventory-файл, в котором указали хост appserver для подключения. Протестировали с помощью модуля ping
+```
+ansible appserver -i ./inventory -m ping
+```
+- Аналогично сделали для хоста dbserver
+```
+ansible dbserver -i inventory -m ping
+```
+- Указали credentials для подключения к инстансам в файл ansible.cfg. Поправили inventory-файл.
+- С помощью модуля command првоерили работоспособность
+```
+~/inkdev_infra/ansible$ ansible dbserver -m command -a uptime
+dbserver | CHANGED | rc=0 >>
+ 08:27:38 up 56 min,  1 user,  load average: 0.00, 0.00, 0.00
+```
+- Добавили возможность работы с группой хостов
+```
+ansible app -m ping
+appserver | SUCCESS => {
+    "changed": false,
+    "ping": "pong"
+}
+```
+- Использовали файл inventory.yml для описания подключения хосстов на языке YAML
+```
+app:
+  hosts:
+    appserver:
+      ansible_host: XXX.XXX.XXX.XXX
+
+db:
+  hosts:
+    dbserver:
+        ansible_host: YYY.YYY.YYY.YYY
+```
+- С помощью ansible проверили установку приложений ruby и bundler
+```
+ansible app -m shell -a 'ruby -v; bundler -v' -i inventory.yml
+```
+- С помощью ansible проверили работу mongod
+```
+ansible db -m command -a 'systemctl status mongod' -i inventory.yml
+
+ansible db -m command -a 'systemctl status mongod' -i inventory.yml
+dbserver | CHANGED | rc=0 >>
+● mongod.service - High-performance, schema-free document-oriented database
+   Loaded: loaded (/lib/systemd/system/mongod.service; enabled; vendor preset: enabled)
+   Active: active (running) since Tue 2019-02-26 07:31:51 UTC; 1h 33min ago
+     Docs: https://docs.mongodb.org/manual
+ Main PID: 1957 (mongod)
+    Tasks: 20
+   Memory: 31.4M
+      CPU: 30.126s
+   CGroup: /system.slice/mongod.service
+           └─1957 /usr/bin/mongod --quiet --config /etc/mongod.conf
+
+Feb 26 07:31:51 reddit-db systemd[1]: Stopped High-performance, schema-free document-oriented database.
+Feb 26 07:31:51 reddit-db systemd[1]: Started High-performance, schema-free document-oriented database.
+```
+Или через модуль systemd
+```
+ansible db -m systemd -a name=mongod -i inventory.yml
+```
+Или через модуль service, в случае системы без systemd
+```
+ansible db -m service -a name=mongod -i inventory.yml
+```
+
+- Применили установку приложения с помощью модуля git
+```
+ansible app -m git -a 'repo=https://github.com/express42/reddit.git dest=/home/appuser/reddit' -i inventory.yml
+```
+- Создали простой playbook clone.yml и запустили на выполнение
+```
+ansible-playbook clone.yml -i inventory.yml
+#Вывод
+PLAY [Clone] **************************************************************************************************************************************************************************************************
+
+TASK [Gathering Facts] ****************************************************************************************************************************************************************************************
+ok: [appserver]
+
+TASK [Clone repo] *********************************************************************************************************************************************************************************************
+ok: [appserver]
+
+PLAY RECAP ****************************************************************************************************************************************************************************************************
+appserver                  : ok=2    changed=0    unreachable=0    failed=0
+
+```
+Удалили приложение reddit с помощью команды ansible app -m command -a 'rm -rf ~/reddit' и запустили playbook еще раз, получили результат
+```
+PLAY [Clone] **************************************************************************************************************************************************************************************************
+
+TASK [Gathering Facts] ****************************************************************************************************************************************************************************************
+ok: [appserver]
+
+TASK [Clone repo] *********************************************************************************************************************************************************************************************
+changed: [appserver]
+
+PLAY RECAP ****************************************************************************************************************************************************************************************************
+appserver                  : ok=2    changed=1    unreachable=0    failed=0
+
+```
+Занчение поля changed изменилось на "1", так как в предыдущем проходе playbook'а было обнаружено установленное приложение из репозитория, соотвественно,  никаких действий не производилось. Во втором проходе приложения обнаружено не было, оно было установлено и счетчик выполнения сменился на "1". Такми образом, сохранена идемпотентность проекта
+
+### Задание со *
+Для генерации динамического inventory на лету написан скрипт inventory.py , выводящий список хостов для ansible в формате json. Ссылка на скрипт iventory осуществляется в файле ansible.cfg 
+Вызов модуля ping:
+```
+ansible all -m ping
+appserver | SUCCESS => {
+    "changed": false,
+    "ping": "pong"
+}
+dbserver | SUCCESS => {
+    "changed": false,
+    "ping": "pong"
+}
+```
+
+ 
+
+
+
+
+
+
+
+
+
 
 
 
