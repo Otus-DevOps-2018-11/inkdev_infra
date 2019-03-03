@@ -453,19 +453,121 @@ dbserver | SUCCESS => {
 }
 ```
 
- 
+# Домашнее задание №11(ansible-2)
+Полезные команды
+```
+ansible-playbook reddit_app.yml #Приенить плейбук
+ansible-playbook reddit_app.yml --check #Тестовый прогон плейбука
+ansible-playbook reddit_app.yml --check --limit db #На какую группу хостов сделать применение плейбука(берем из inventory.yml)
+nsible-playbook reddit_app.yml --check --limit app --tags app-tag # Какие таски применить к указанным хостам(теги тасков из плейбука)
+```
+- Создали playbook reddit_app.yml для деплоя приложения reddit(для исключения лишних файлов добавим расширение *.retry в файл .gitignore)
+- Создали сценарий для настройки базы mongod с помощью модуля template. Добавляем тег db-tag
+```
+---
+- name: Configure hosts & deploy application
+  hosts: all
+  vars:
+    mongo_bind_ip: 0.0.0.0 # Переменная задается в блоке vars
+  tasks:
+     - name: Change mongo config file
+       become: true # <-- Выполнить задание от root
+       template:
+         src: templates/mongod.conf.j2 # <-- Путь до локального файла-шаблона
+         dest: /etc/mongod.conf # <-- Путь на удаленном хосте
+         mode: 0644 # <-- Права на файл, которые нужно установить
+       tags: db-tag # <-- Список тэгов для задачи
+```
+- Определили переменную для листнера в блоке vars. Значение переменной порта в конфиге темплейта оставили по умолчанию
+- Сделали тестовый прогон плейбука с помощью команды
+```
+ansible-playbook reddit_app.yml --check --limit db
+```
+- Добавили хендлер для рестарта mongodb при изменениии конфига
+```
+handlers: # <-- Добавим блок handlers и задачу
+- name: restart mongod
+  become: true
+  service: name=mongod state=restarted
+```
+- Добавили таск для  копирования unit-файла на хост приложения и таск рестарта приложения через systemd
+- Добавили шаблон в директории templates/db_config.j2, содержащий переменную с адресом db. Определили значение этой переменной в плейбуке
+- Сделали пробный прогон и применили для группы хостов с тегом app-tag
+```
+ansible-playbook reddit_app.yml --check --limit app --tags app-tag
+ansible-playbook reddit_app.yml --limit app --tags app-tag
+```
+- Установили приложение с помощью модулей git и bundle, пометили тегом deploy-tag, сделали тестовый прогон и применили
+```
+ansible-playbook reddit_app.yml --check --limit app --tags deploy-tag
+ansible-playbook reddit_app.yml --limit app --tags deploy-tag
+```
+ - Убедились в том, что приложение работает
+ ```
+ curl http://http://35.195.39.151:9292/
+ ```
+ ### Один плейбук несколько сценариев
+- Создали файл rediit_app2.yml , в котором разбили предыдущий сценарий на три группы:Configure MongoDB, Configure App и Deploy. На каждый из них повесели соответствующий тег и указали необходимую группу хостов
+- Проверили работоспособность
 
+### Несколько плейбуков
+- Разбили файл сценария на три новых файла: app.yml dm.yml deploy.yml
+- Удалили соответствующие теги
+- Создали общий плейбук site.yml, в котором сослались на три наших плейбука
+- Сделали тестовый прогон и задеплоили
+```
+ansible-playbook site.yml --check
+ansible-playbook site.yml
+```
+### Задание со *
+Были исследованы две возможности для подключения динамического инвентори:
+ - С помощью утилиты gce.py. Показался более грамоздким из-за наличия указания различных параметров, credentials итд. Плюc, утилита ориентирована только на работу с GCP
+ - С помощью инструмента terraform-inventory. Показался более гибким в настройке, плюс, поддерживает других провайдеров(AWS, DO)
+ Сайт проекта:https://github.com/adammck/terraform-inventory
+ Процесс установки и настройки terraform-inventory
+   1. Скачиваем дистрибутив для своей ОС отсюда: https://github.com/adammck/terraform-inventory/releases
+   2. Для Linux распаковываем, копируем в папку /usr/bin/
+   3. Утилита задействует переменную окружения TF_STATE, в которую необходимо записать путь до *.tfstate файла
+   4. В общем виде команда деплоя  будет выглядеть так:
+      ```
+      TF_STATE=../terraform/stage/ ansible-playbook --inventory-file=/usr/bin/terraform-inventory site.yml --check
+      TF_STATE=../terraform/stage/ ansible-playbook --inventory-file=/usr/bin/terraform-inventory site.yml
+      ```
+      где 
+      ```
+      --inventory-file=/usr/bin/terraform-inventory #Путь до terraform-inventory
+      ```
+      Если вносим переменную TF_STATE в глобальные переменные и меняем в файле ansible.cfg значение inventory на inventory = /usr/bin/terraform-inventory, то команда сокращается до
+      ```
+      ansible-playbook site.yml --check
+      ansible-playbook site.yml
+      ```
+      Применяем и проверяем
+      ```
+      curl http://35.195.39.151:9292
+  
+      ```
 
+### Провижининг в Packer
+- Создали два плейбука packer_app.yml и packer_db.yml для провижининга приложений в образ packer
+- Изменили секцию provisioners в файлах шаблонов app.json и db.json
+- Создали правило, разрешающее подключаться по ssh снаружи на время билда образов
+- Сделали ребилд образов reddit-app и reddit-db из корня репозитория, предварительно удалив старые образы
+```
+packer build -var-file packer/variables.json packer/db.json
+packer build -var-file packer/variables.json packer/app.json
+```
+- На основе свежих билдов развернули тестовое окружение stage и установили с помощью плейбуков соответствующие приложения
+- Проверили работоспособность
 
-
-
-
-
-
-
-
-
-
-
-
-
+***Примечание
+При билде app предупреждение, что для перечисления item теперь лучше использовать список. Тем не менее, билд проходит успешно
+```
+[DEPRECATION WARNING]: Invoking "apt" only once while using a loop via
+    googlecompute: squash_actions is deprecated. Instead of using a loop to supply multiple items
+    googlecompute: and specifying `name: "{{ item }}"`, please use `name: ['ruby-full', 'ruby-
+    googlecompute: bundler', 'build-essential']` and remove the loop. This feature will be removed
+    googlecompute:  in version 2.11. Deprecation warnings can be disabled by setting
+    googlecompute: deprecation_warnings=False in ansible.cfg.
+    googlecompute: changed: [default] => (item=[u'ruby-full', u'ruby-bundler', u'build-essential'])
+```
