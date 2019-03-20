@@ -12,8 +12,8 @@ install:
 
 script:
   - cd packer
-  - packer validate -var-file=variables.json app.json
-  - packer validate -var-file=variables.json db.json
+  - packer validate -var-file=variables.json.example app.json
+  - packer validate -var-file=variables.json.example db.json
 
 notifications:
   slack:
