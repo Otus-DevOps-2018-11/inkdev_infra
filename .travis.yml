@@ -6,6 +6,7 @@ env:
 before_install:
 - curl https://raw.githubusercontent.com/express42/otus-homeworks/2018-11/run.sh |
   bash
+- sudo apt-get update -qq
 install:
   - sudo apt-get install -y unzip wget
   - pip install --upgrade pip
