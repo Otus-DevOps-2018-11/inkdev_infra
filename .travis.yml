@@ -1,9 +1,42 @@
 dist: trusty
 sudo: required
 language: bash
+env:
+  - ansible_version=2.7.1 ansible_lint_version=3.5.1
 before_install:
 - curl https://raw.githubusercontent.com/express42/otus-homeworks/2018-11/run.sh |
   bash
+- sudo apt-get update -qq
+install:
+  - sudo apt-get install -y unzip wget
+  - sudo pip install --upgrade pip
+  - sudo pip install ansible==${ansible_version}
+  - sudo pip install ansible-lint==${ansible_lint_version}
+  - wget -O packer.zip https://releases.hashicorp.com/packer/1.3.3/packer_1.3.3_linux_amd64.zip
+  - sudo unzip -o packer.zip -d /usr/local/bin
+  - wget -O terraform.zip https://releases.hashicorp.com/terraform/0.11.9/terraform_0.11.9_linux_amd64.zip
+  - sudo unzip -o terraform.zip -d /usr/bin/
+  - wget -O tflint.zip https://github.com/wata727/tflint/releases/download/v0.7.4/tflint_linux_amd64.zip
+  - sudo unzip -o tflint.zip -d /usr/bin/
+  - cd terraform/stage
+  - cp terraform.tfvars.example terraform.tfvars
+  - cd ../prod
+  - cp terraform.tfvars.example terraform.tfvars
+  - touch ~/.ssh/appuser.pub
+  - cd ../../
+script:
+  - packer validate -var-file=packer/variables.json.example packer/app.json
+  - packer validate -var-file=packer/variables.json.example packer/db.json
+  - cd terraform/stage
+  - terraform init -backend=false && terraform validate && tflint
+  - cd -
+  - cd terraform/prod
+  - terraform init -backend=false && terraform validate && tflint
+  - cd -
+  - cd ansible
+  - ansible-lint playbooks/site.yml --exclude=roles/jdauphant.nginx
+  - cd -
+
 notifications:
   slack:
     rooms:

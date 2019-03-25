@@ -572,4 +572,56 @@ packer build -var-file packer/variables.json packer/app.json
     googlecompute: changed: [default] => (item=[u'ruby-full', u'ruby-bundler', u'build-essential'])
 ```
 
+# Домашнее задание №12(ansible-3)
+Полезные команды
+```
+ansible-galaxy init #создать структуру роли с соответствующим форматом
+```
+- Разнесли плейбуки по ролям app и db
+- Создали окружения stage и prod, добавили в них необходимые inventory.yml и переменные групп хостов в group_vars
+- Добавили роль jdauphant.nginx в плейбук app.yml
+- Прогнали с помощью --check получили ошибку
+```
+TASK [jdauphant.nginx : Create links for sites-enabled] ************************
+failed: [appserver] (item={'value': [u'listen 80', u'server_name "reddit"', u'lo                                                                                       cation / { proxy_pass http://127.0.0.1:9292; }'], 'key': u'default'}) => {"chang                                                                                       ed": false, "item": {"key": "default", "value": ["listen 80", "server_name \"red                                                                                       dit\"", "location / { proxy_pass http://127.0.0.1:9292; }"]}, "msg": "src file d                                                                                       oes not exist, use \"force=yes\" if you really want to create the link: /etc/ngi                                                                                       nx/sites-available/default.conf", "path": "/etc/nginx/sites-enabled/default.conf                                                                                       ", "src": "/etc/nginx/sites-available/default.conf", "state": "absent"}
+...ignoring
+```
+- При этом, при боевом прогоне , все нормально
+```
+PLAY RECAP ************************************************************************************************************************************************************
+appserver                  : ok=27   changed=18   unreachable=0    failed=0
+dbserver                   : ok=4    changed=2    unreachable=0    failed=0
+```
+- Убедились, что proxy pass работает нормально и приложение доступно по 80 порту
 
+###Хранение паролей в Vault
+- Создали файл vault.key со строкой ключа
+- В секцию default добавили информацию о файле ключ-файла
+- Зашифровали файлики credentials.yml в окружениях stage и prod 
+```
+ansible-vault encrypt environments/prod/credentials.yml
+ansible-vault encrypt environments/stage/credentials.yml
+``` 
+- Расшифровка обратно
+```
+ansible-vault decrypt environments/prod/credentials.yml
+ansible-vault decrypt environments/stage/credentials.yml
+```
+
+### Задание со *
+Создаем динамический инвентори для окружений stage и prod с помощью утилиты terrafrom-inventory, использованной в предыдущей домашней работе
+Для корректной работы создали symbol link c помощью команды
+```
+ln -s /usr/bin/terraform-inventory terraform-inventory
+```
+Установку плейбука осуществляем с помощью команды
+```
+TF_STATE=../terraform/stage ansible-playbook --inventory-file=./environments/stage/terraform-inventory playbooks/site.yml
+```
+ 
+### Задание с **
+- Добавили packer validate для шаблонов
+- Добавли terrafrom validate и линтер tflint для окружений stage и prod
+- Добавили линтер ansible-lint для плейбуков ansible
+- D README.md добавили бейдж со статусом билда ветки ansible-3
+[![Build Status](https://travis-ci.com/Otus-DevOps-2018-11/inkdev_infra.svg?branch=ansible-3)](https://travis-ci.com/Otus-DevOps-2018-11/inkdev_infra)
