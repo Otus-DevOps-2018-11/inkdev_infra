@@ -619,3 +619,9 @@ ln -s /usr/bin/terraform-inventory terraform-inventory
 TF_STATE=../terraform/stage ansible-playbook --inventory-file=./environments/stage/terraform-inventory playbooks/site.yml
 ```
  
+### Задание с **
+- Добавили packer validate для шаблонов
+- Добавли terrafrom validate и линтер tflint для окружений stage и prod
+- Добавили линтер ansible-lint для плейбуков ansible
+- D README.md добавили бейдж со статусом билда ветки ansible-3
+[![Build Status](https://travis-ci.com/Otus-DevOps-2018-11/inkdev_infra.svg?branch=ansible-3)](https://travis-ci.com/Otus-DevOps-2018-11/inkdev_infra)
