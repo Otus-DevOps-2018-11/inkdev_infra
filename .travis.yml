@@ -26,7 +26,7 @@ script:
   - packer validate -var-file=packer/variables.json.example packer/app.json
   - packer validate -var-file=packer/variables.json.example packer/db.json
   - cd terraform/stage
-  - terraform init -backend=false && terraform validate
+  - terraform init -backend=false && terraform validate && tflint
 notifications:
   slack:
     rooms:
