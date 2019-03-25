@@ -20,6 +20,8 @@ install:
   - sudo unzip -o tflint.zip -d /usr/bin/
   - cd terraform/stage
   - cp terraform.tfvars.example terraform.tfvars
+  - cd ../prod
+  - cp terraform.tfvars.example terraform.tfvars
   - touch ~/.ssh/appuser.pub
   - cd ../../
 script:
