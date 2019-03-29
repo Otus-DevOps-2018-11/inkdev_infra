@@ -621,7 +621,37 @@ TF_STATE=../terraform/stage ansible-playbook --inventory-file=./environments/sta
  
 ### Задание с **
 - Добавили packer validate для шаблонов
-- Добавли terrafrom validate и линтер tflint для окружений stage и prod
+- Добавили terrafrom validate и линтер tflint для окружений stage и prod
 - Добавили линтер ansible-lint для плейбуков ansible
-- D README.md добавили бейдж со статусом билда ветки ansible-3
+- В README.md добавили бейдж со статусом билда ветки ansible-3
 [![Build Status](https://travis-ci.com/Otus-DevOps-2018-11/inkdev_infra.svg?branch=ansible-3)](https://travis-ci.com/Otus-DevOps-2018-11/inkdev_infra)
+
+
+# Домашнее задание №13(ansible-4)
+Полезные команды
+```
+vagrant up
+vagrant box list
+vagrant status #Проверка статуса запущенных VM
+vagrant ssh appserver #Доступ по ssh к одной из VM
+vagrant destroy -f #Удалить VM
+
+```
+- Установлен Vagrant Для локальной разработки ролей
+- Доработали роли app и db (сделали провижионинг) 
+- Параметризовали пользователя 
+
+### Задание со *
+- Дополнили конфигурацию vagrant корректной работы проксирования приложения с помощью nginx
+```
+ansible.extra_vars = {
+        "deploy_user" => "vagrant",
+		    "nginx_sites" => {
+          "default" => [
+            "listen 80",
+            "server_name 'reddit'",
+            "location / { proxy_pass http://127.0.0.1:9292; }"
+            ]
+          }
+      }
+```
