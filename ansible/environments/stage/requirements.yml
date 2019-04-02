@@ -2,6 +2,5 @@
   version: v2.21.1
 
 - src: inkdev.db_otus_test
-  version: 1.0
-  name: db_otus_test
-  
+  version: master
+  name: db_otus_test  
