@@ -621,7 +621,64 @@ TF_STATE=../terraform/stage ansible-playbook --inventory-file=./environments/sta
  
 ### Задание с **
 - Добавили packer validate для шаблонов
-- Добавли terrafrom validate и линтер tflint для окружений stage и prod
+- Добавили terrafrom validate и линтер tflint для окружений stage и prod
 - Добавили линтер ansible-lint для плейбуков ansible
-- D README.md добавили бейдж со статусом билда ветки ansible-3
+- В README.md добавили бейдж со статусом билда ветки ansible-3
 [![Build Status](https://travis-ci.com/Otus-DevOps-2018-11/inkdev_infra.svg?branch=ansible-3)](https://travis-ci.com/Otus-DevOps-2018-11/inkdev_infra)
+
+
+# Домашнее задание №13(ansible-4)
+Полезные команды
+```
+vagrant -v #Версия Vagrant
+vagrant up
+vagrant box list
+vagrant status #Проверка статуса запущенных VM
+vagrant ssh appserver #Доступ по ssh к одной из VM
+vagrant destroy -f #Удалить VM
+
+```
+- Установлен Vagrant Для локальной разработки ролей
+- Доработали роли app и db (сделали провижининг) 
+- Настроили тестирование ролей с помощью Molecule и Testinfra
+- Написали тест к роли db для проверки использования БД на порту 27017
+- В шаблонах Packer использовали Ansible роли вместо плейбуков
+- Роль Ansible вынесена в отдельный дистрибутив https://github.com/inkdev/db_otus_test
+
+### Задание со * №1
+- Дополнили конфигурацию vagrant корректной работы проксирования приложения с помощью nginx
+```
+ansible.extra_vars = {
+        "deploy_user" => "vagrant",
+		    "nginx_sites" => {
+          "default" => [
+            "listen 80",
+            "server_name 'reddit'",
+            "location / { proxy_pass http://127.0.0.1:9292; }"
+            ]
+          }
+      }
+```
+
+### Задание со * №2
+- Создаем сервисный аккаунт в GCP API&Services->Enable API&Services->GCE
+- Скачиваем credentials.json
+- В соответствии с инструкцией настраиваем интеграцию акканута c travis и подключение к GCE
+```
+wget https://raw.githubusercontent.com/vitkhab/gce_test/c98d97ea79bacad23fd26106b52dee0d21144944/.travis.yml
+# генерируем ключ для подключения по SSH
+ssh-keygen -t rsa -f google_compute_engine -C 'travis' -q -N ''
+# Должна быть предварительно подключена данная репа в тревисе
+# Шифруем ключи credentials для подключения к GCE
+travis encrypt GCE_SERVICE_ACCOUNT_EMAIL='ci-test@infra-179032.iam.gserviceaccount.com' --add
+travis encrypt GCE_CREDENTIALS_FILE="$(pwd)/credentials.json" --add
+travis encrypt GCE_PROJECT_ID='infra-179032' --add
+# шифруем файлы
+tar cvf secrets.tar credentials.json google_compute_engine
+travis login
+travis encrypt-file secrets.tar --add
+
+# пушим и проверяем изменения
+git commit -m 'Added Travis integration'
+git push
+```
