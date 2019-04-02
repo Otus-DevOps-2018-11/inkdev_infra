@@ -630,6 +630,7 @@ TF_STATE=../terraform/stage ansible-playbook --inventory-file=./environments/sta
 # Домашнее задание №13(ansible-4)
 Полезные команды
 ```
+vagrant -v #Версия Vagrant
 vagrant up
 vagrant box list
 vagrant status #Проверка статуса запущенных VM
@@ -638,10 +639,13 @@ vagrant destroy -f #Удалить VM
 
 ```
 - Установлен Vagrant Для локальной разработки ролей
-- Доработали роли app и db (сделали провижионинг) 
-- Параметризовали пользователя 
+- Доработали роли app и db (сделали провижининг) 
+- Настроили тестирование ролей с помощью Molecule и Testinfra
+- Написали тест к роли db для проверки использования БД на порту 27017
+- В шаблонах Packer использовали Ansible роли вместо плейбуков
+- Роль Ansible вынесена в отдельный дистрибутив https://github.com/inkdev/db_otus_test
 
-### Задание со *
+### Задание со * №1
 - Дополнили конфигурацию vagrant корректной работы проксирования приложения с помощью nginx
 ```
 ansible.extra_vars = {
@@ -654,4 +658,27 @@ ansible.extra_vars = {
             ]
           }
       }
+```
+
+### Задание со * №2
+- Создаем сервисный аккаунт в GCP API&Services->Enable API&Services->GCE
+- Скачиваем credentials.json
+- В соответствии с инструкцией настраиваем интеграцию акканута c travis и подключение к GCE
+```
+wget https://raw.githubusercontent.com/vitkhab/gce_test/c98d97ea79bacad23fd26106b52dee0d21144944/.travis.yml
+# генерируем ключ для подключения по SSH
+ssh-keygen -t rsa -f google_compute_engine -C 'travis' -q -N ''
+# Должна быть предварительно подключена данная репа в тревисе
+# Шифруем ключи credentials для подключения к GCE
+travis encrypt GCE_SERVICE_ACCOUNT_EMAIL='ci-test@infra-179032.iam.gserviceaccount.com' --add
+travis encrypt GCE_CREDENTIALS_FILE="$(pwd)/credentials.json" --add
+travis encrypt GCE_PROJECT_ID='infra-179032' --add
+# шифруем файлы
+tar cvf secrets.tar credentials.json google_compute_engine
+travis login
+travis encrypt-file secrets.tar --add
+
+# пушим и проверяем изменения
+git commit -m 'Added Travis integration'
+git push
 ```
